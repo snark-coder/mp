@@ -60,7 +60,7 @@ const router = createBrowserRouter([
                 element: <ManageBooks />
             },
             {
-                path: "/admin/dashboard/edit-books",
+                path: "/admin/dashboard/edit-books/:id",
                 element: <EditBooks />,
                 loader: ({params}) => fetch(`http://localhost:5000/book/${params.id}`)
             }
