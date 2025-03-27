@@ -1,2 +1,8 @@
-@import "tailwindcss";
 
+
+@plugin "flowbite-react/plugin/tailwindcss";
+@source "../.flowbite-react/class-list.json";
+
+header, nav{
+    z-index: 100001 !important;
+}

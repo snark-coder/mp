@@ -3,6 +3,7 @@ const app = express()
 const port = process.env.PORT || 5000
 const cors = require("cors")
 
+
 //middleware
 // makes connection to frontend site
 
@@ -84,6 +85,14 @@ async function run() {
         query = {category: req.query.category}
       }
       const result = await bookCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    // get single book data
+    app.get("/book/:id", async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id : new ObjectId(id)};
+      const result = await bookCollection.findOne(filter);
       res.send(result);
     })
 
