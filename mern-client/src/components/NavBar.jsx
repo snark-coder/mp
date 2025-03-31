@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { FaBlog, FaXmark, FaBarsStaggered } from "react-icons/fa6";
+import { AuthContext } from '../context/AuthProvider';
 
 
 const NavBar = () => {
     const [isMenuOpen, setisMenuOpen] = useState(false);
     const [isSticky, setisSticky] = useState(false);
+
+    const {user} = useContext(AuthContext);
+    console.log(user);
 
     // toggle menu
     const toggleMenu = ()=> {
@@ -35,7 +39,7 @@ const NavBar = () => {
         {link: "Home", path:"/"},
         {link: "About", path:"/about"},
         {link: "Shop", path:"/shop"},
-        {link: "Rent your book", path:"/admin/dashboard"},
+        {link: "Rent your book", path:"/admin/dashboard/upload"},
         {link: "Blog", path:"/blog"}
     ]
   return (
@@ -54,6 +58,9 @@ const NavBar = () => {
                     {/* button for lg devices */}
                     <div className='space-x-12 lg:flex items-center hidden '>
                         <button><FaBarsStaggered className='w-5 hover:text-red-700'/></button>
+                        {
+                            user ? user.email : ""
+                        }
 
                     </div>
 

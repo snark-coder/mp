@@ -12,9 +12,7 @@ const SideBar = () => {
       </SidebarLogo>
       <SidebarItems>
         <SidebarItemGroup>
-          <SidebarItem href="/admin/dashboard" icon={HiChartPie}>
-            Dashboard
-          </SidebarItem>
+         
           <SidebarItem href="/admin/dashboard/upload" icon={HiOutlineCloudUpload}>
             Upload Books
           </SidebarItem>
