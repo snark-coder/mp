@@ -36,12 +36,24 @@ async function run() {
     await client.connect();
 
     const bookCollection = client.db("BookInventory").collection("books");
+    const rentalCollection = client.db("BookInventory").collection("rentals");
+
     //insert a book using post method
-    app.post("/upload-book", async(req, res)=>{
-        const data = req.body;
-        const result = await bookCollection.insertOne(data);
-        res.send(result);
-    })
+    app.post("/upload-book", async (req, res) => {
+      const data = req.body;
+    
+      if (!data.uploadedBy || !data.uploadedBy.uid) {
+        return res.status(400).send({ message: "Missing uploader info" });
+      }
+    
+      const result = await bookCollection.insertOne({
+        ...data,
+        createdAt: new Date()
+      });
+    
+      res.send(result);
+    });
+    
 
     //get all books from db
 
@@ -78,15 +90,19 @@ async function run() {
         res.send(result);
     })
 
-    //filter books
-    app.get("/all-books", async(req, res)=>{
+    // get all books except your own books
+    app.get("/all-books", async (req, res) => {
+      const userEmail = req.query.email;
+    
       let query = {};
-      if(req.query?.category){
-        query = {category: req.query.category}
+      if (userEmail) {
+        query = { "uploadedBy.email": { $ne: userEmail } };
       }
+    
       const result = await bookCollection.find(query).toArray();
       res.send(result);
-    })
+    });
+    
 
     // get single book data
     app.get("/book/:id", async(req, res)=>{
@@ -95,6 +111,86 @@ async function run() {
       const result = await bookCollection.findOne(filter);
       res.send(result);
     })
+    
+    // get users books (current users)
+    app.get("/my-books/:ownerId", async (req, res) => {
+      const { ownerId } = req.params;
+    
+      try {
+        const result = await bookCollection
+          .find({ ownerId })
+          .toArray();
+    
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Error fetching user books" });
+      }
+    });
+
+    // rent a book
+
+    app.post("/rent", async (req, res) => {
+      const { bookId, renterId, rentDurationDays } = req.body;
+    
+      const book = await bookCollection.findOne({ _id: new ObjectId(bookId) });
+    
+      if (!book) {
+        return res.status(404).send({ message: "Book not found" });
+      }
+    
+      if (book.ownerId === renterId) {
+        return res.status(400).send({ message: "You cannot rent your own book" });
+      }
+    
+      const rental = {
+        bookId: new ObjectId(bookId),
+        renterId,
+        rentStartDate: new Date(),
+        rentDurationDays,
+        status: "pending",
+        createdAt: new Date()
+      };
+    
+      const result = await rentalCollection.insertOne(rental);
+      res.send(result);
+    });
+
+    // get rentals that i have rented
+    app.get("/my-rentals/:userId", async (req, res) => {
+      const { userId } = req.params;
+    
+      const result = await rentalCollection
+        .find({ renterId: userId })
+        .toArray();
+    
+      res.send(result);
+    });
+
+    // get the people that have rented my books
+    app.get("/rented-my-books/:ownerId", async (req, res) => {
+      const { ownerId } = req.params;
+    
+      // Get user's books first
+      const userBooks = await bookCollection.find({ ownerId }).toArray();
+      const userBookIds = userBooks.map(book => book._id);
+    
+      // Then find rentals of those books
+      const rentals = await rentalCollection
+        .find({ bookId: { $in: userBookIds } })
+        .toArray();
+    
+      res.send(rentals);
+    });
+
+    app.get("/user-books", async (req, res) => {
+      const email = req.query.email;
+      const result = await bookCollection.find({ "uploadedBy.email": email }).toArray();
+      res.send(result);
+    });
+    
+    
+    
+    
 
     
 

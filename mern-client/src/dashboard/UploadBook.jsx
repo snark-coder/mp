@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { Button, Checkbox, Label, Select, Textarea, TextInput } from "flowbite-react";
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthProvider';
 
 const UploadBook = () => {
   const bookCategories = [
@@ -24,6 +26,7 @@ const UploadBook = () => {
   ]
 
   const [selectedBookCategory, setselectedBookCategory] = useState(bookCategories[0]);
+  const {user} = useContext(AuthContext);
 
   const handleChangeSelectedValue = (event)=> {
     console.log(event.target.value);
@@ -41,7 +44,11 @@ const UploadBook = () => {
     const bookPrice = form.bookPrice.value;
 
     const bookObj = {
-      bookTitle, authorName, imageURL, category, bookDescription, bookPrice
+      bookTitle, authorName, imageURL, category, bookDescription, bookPrice,
+      uploadedBy: {
+        uid: user?.uid,
+        email: user?.email
+      }
     }
 
     // send data to db

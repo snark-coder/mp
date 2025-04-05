@@ -1,12 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { Card } from "flowbite-react";
+import React, { useContext, useEffect, useState} from 'react';
+import { Card, Modal, Button } from "flowbite-react";
+import { AuthContext } from '../context/AuthProvider';
 
+import SingleBook from './SingleBook';
+import { Link } from 'react-router-dom';
 
 const Shop = () => {
+  const { user } = useContext(AuthContext);
   const [books, setBooks] = useState([]);
-  useEffect( ()=> {
-    fetch("http://localhost:5000/all-books").then(res => res.json()).then(data => setBooks(data));
-  }, [])
+  
+useEffect(() => {
+  const fetchBooks = async () => {
+    let url = "http://localhost:5000/all-books";
+    if (user?.email) {
+      url += `?email=${user.email}`;
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+    setBooks(data);
+  };
+
+  fetchBooks();
+}, [user]);
   return (
     <div className='mt-28 px-4 lg:px-24'>
       <h2 className='text-5xl font-bold text-center'>All Books</h2>
@@ -25,7 +41,11 @@ const Shop = () => {
 
             
 
-            <button className='bg-red-700 font-semibold text-white py-2 my-3 rounded'>Rent</button>
+            <Link to={`/book/${book._id}`}>
+            <button className='bg-red-700 font-semibold text-white py-2 my-3 rounded w-full'>
+            Rent
+            </button>
+            </Link>
           </Card>)
         }
       </div>
