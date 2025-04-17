@@ -7,7 +7,7 @@ import App from "../App";
 import Home from "../home/Home";
 import Shop from "../shop/Shop";
 
-import Blog from "../components/Blog";
+
 import SingleBook from "../shop/SingleBook";
 import DashBoardLayout from "../dashboard/DashBoardLayout";
 //import DashBoard from "../dashboard/DashBoard";
@@ -18,6 +18,7 @@ import Signup from "../components/Signup";
 import Login from "../components/Login";
 import PrivateRouter from "../PrivateRoute/PrivateRouter";
 import Logout from "../components/Logout";
+import MyRentals from "../components/MyRentals";
 
 const router = createBrowserRouter([
     {
@@ -38,8 +39,11 @@ const router = createBrowserRouter([
                 path:"/book/:id",
                 element: <SingleBook/>,
                 loader: ({params}) => fetch(`http://localhost:5000/book/${params.id}`)
+            },
+            {
+                path: "/my-rentals",
+                element: <PrivateRouter><MyRentals /></PrivateRouter>
             }
-            
            
             
         ]
@@ -73,7 +77,9 @@ const router = createBrowserRouter([
     {
         path: "logout",
         element:<Logout/>
-    }
+    },
+    
+      
     
 ]);
 

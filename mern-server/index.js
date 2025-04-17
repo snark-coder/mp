@@ -48,20 +48,97 @@ async function run() {
     
       const result = await bookCollection.insertOne({
         ...data,
-        createdAt: new Date()
+        createdAt: new Date(),
+        isAvailable:true
       });
     
       res.send(result);
     });
+
+    // returning a books
+    app.post("/return/:rentalId", async (req, res) => {
+      const { rentalId } = req.params;
+    
+      try {
+        const rental = await rentalCollection.findOne({ _id: new ObjectId(rentalId) });
+    
+        if (!rental) {
+          return res.status(404).send({ message: "Rental not found" });
+        }
+    
+        //  Set rental status to returned
+        const updateResult = await rentalCollection.updateOne(
+          { _id: new ObjectId(rentalId) },
+          { $set: { status: "returned", returnDate: new Date() } }
+        );
+    
+        // Make book available again
+        await bookCollection.updateOne(
+          { _id: new ObjectId(rental.bookId) },
+          { $set: { isAvailable: true } }
+        );
+    
+        res.send({ message: "Book returned and made available", updateResult });
+      } catch (err) {
+        res.status(500).send({ message: "Failed to return book", error: err.message });
+      }
+    });
+    
     
 
-    //get all books from db
+    app.get("/my-rentals/:userId", async (req, res) => {
+      const { userId } = req.params;
+    
+      try {
+        const rentals = await rentalCollection.find({ renterId: userId }).toArray();
+    
+        const bookIds = rentals.map(r => r.bookId);
+        const books = await bookCollection.find({ _id: { $in: bookIds } }).toArray();
+    
+        // Map book ID to book details for easy lookup
+        const bookMap = {};
+        books.forEach(book => {
+          bookMap[book._id.toString()] = book;
+        });
+    
+        // Attach book details and calculate due date
+        const enhancedRentals = rentals.map(rental => {
+          const book = bookMap[rental.bookId.toString()];
+          return {
+            rentalId: rental._id,
+            rentStartDate: rental.rentStartDate,
+            status:rental.status,
+            dueDate: new Date(new Date(rental.rentStartDate).getTime() + rental.rentDurationDays * 24 * 60 * 60 * 1000),
+            book: {
+              title: book?.bookTitle,
+              imageURL: book?.imageURL,
+              price: book?.bookPrice,
+              bookId: book?._id,
+              isAvailable:true
+            }
+          };
+        });
+    
+        res.send(enhancedRentals);
+      } catch (error) {
+        console.error("Error fetching rentals:", error);
+        res.status(500).send({ message: "Error fetching rentals" });
+      }
+    });
 
-    // app.get("/all-books", async(req, res)=>{
-    //     const books = await bookCollection.find();
-    //     const result = await books.toArray();
-    //     res.send(result);
-    // })
+
+  
+    
+    
+
+    // app.patch("/backfill-availability", async (req, res) => {
+    //   const result = await bookCollection.updateMany(
+    //     { isAvailable: { $exists: false } },
+    //     { $set: { isAvailable: true } }
+    //   );
+    //   res.send(result);
+    // });
+    
 
     //update books data
     app.patch("/book/:id", async(req, res)=>{
@@ -93,10 +170,11 @@ async function run() {
     // get all books except your own books
     app.get("/all-books", async (req, res) => {
       const userEmail = req.query.email;
+      
     
-      let query = {};
+      let query = { isAvailable: true }; // 👈 Only show available books
       if (userEmail) {
-        query = { "uploadedBy.email": { $ne: userEmail } };
+        query["uploadedBy.email"] = { $ne: userEmail };
       }
     
       const result = await bookCollection.find(query).toArray();
@@ -151,21 +229,20 @@ async function run() {
         createdAt: new Date()
       };
     
-      const result = await rentalCollection.insertOne(rental);
-      res.send(result);
-    });
-
-    // get rentals that i have rented
-    app.get("/my-rentals/:userId", async (req, res) => {
-      const { userId } = req.params;
+      const rentalResult = await rentalCollection.insertOne(rental);
     
-      const result = await rentalCollection
-        .find({ renterId: userId })
-        .toArray();
+      // ✅ Mark book as unavailable
+      await bookCollection.updateOne(
+        { _id: new ObjectId(bookId) },
+        { $set: { isAvailable: false } }
+      );
     
-      res.send(result);
+      res.send(rentalResult);
     });
+    
+    
 
+    
     // get the people that have rented my books
     app.get("/rented-my-books/:ownerId", async (req, res) => {
       const { ownerId } = req.params;
