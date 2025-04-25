@@ -226,7 +226,8 @@ async function run() {
         rentStartDate: new Date(),
         rentDurationDays,
         status: "pending",
-        createdAt: new Date()
+        createdAt: new Date(),
+        returnDate:null,
       };
     
       const rentalResult = await rentalCollection.insertOne(rental);
