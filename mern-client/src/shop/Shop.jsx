@@ -36,7 +36,7 @@ useEffect(() => {
             </h5>
             <p className="text-2xl font-bold tracking-tight text-gray-900 text-white">
              
-            Rs. {book.bookPrice}
+            Rs. {book.price}
             </p>
 
             

@@ -3,12 +3,18 @@ const app = express()
 const port = process.env.PORT || 5000
 const cors = require("cors")
 
+app.use(cors());
+app.use(express.json());
+
+
+
+
+
 
 //middleware
 // makes connection to frontend site
 
-app.use(cors());
-app.use(express.json());
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
@@ -30,6 +36,11 @@ const client = new MongoClient(uri, {
   }
 });
 
+const cartRoutes = require('./routes/cart')(client);
+app.use('/api/cart', cartRoutes);
+const userRoutes = require('./routes/user')(client);
+app.use('/api/user', userRoutes);
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -37,10 +48,12 @@ async function run() {
 
     const bookCollection = client.db("BookInventory").collection("books");
     const rentalCollection = client.db("BookInventory").collection("rentals");
+    //const cart = client.db("BookInventory").collection("cart")
 
     //insert a book using post method
     app.post("/upload-book", async (req, res) => {
       const data = req.body;
+      //console.log(req.body);
     
       if (!data.uploadedBy || !data.uploadedBy.uid) {
         return res.status(400).send({ message: "Missing uploader info" });
@@ -49,12 +62,103 @@ async function run() {
       const result = await bookCollection.insertOne({
         ...data,
         createdAt: new Date(),
-        isAvailable:true
+        isAvailable: true
       });
     
       res.send(result);
     });
 
+    // delete from my-rentals
+    // server.js
+app.delete("/rental/:rentalId", async (req, res) => {
+  const { rentalId } = req.params;
+
+  try {
+    const result = await rentalCollection.deleteOne({ _id: new ObjectId(rentalId) });
+    res.send(result);
+  } catch (error) {
+    console.error("Error deleting rental:", error);
+    res.status(500).send({ message: "Failed to delete rental" });
+  }
+});
+
+
+// save address
+
+
+
+// get user cart
+app.get('/user-cart/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const userCartCollection = client.db("BookInventory").collection("userCarts");
+
+    const userCart = await userCartCollection.findOne({ userId });
+
+    res.send(userCart?.cartItems || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ success: false, error: err.message });
+  }
+});
+
+// save address after checkout
+
+app.post('/user-address/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { address } = req.body;
+
+  try {
+    const usersCollection = client.db("BookInventory").collection("users");
+
+    const result = await usersCollection.updateOne(
+      { userId },
+      { $set: { address } },
+      { upsert: true }
+    );
+
+    res.send({ success: true, result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ success: false, error: err.message });
+  }
+});
+
+// fetch multiple cart books
+
+
+
+// Route to get user cart items
+
+
+// Route to fetch books in cart based on their IDs
+app.get('/cart-books', async (req, res) => {
+  try {
+    const idsParam = req.query.ids;
+    if (!idsParam) {
+      return res.status(400).send({ message: "No book IDs provided" });
+    }
+
+    const ids = idsParam.split(',').map(id => {
+      try {
+        return new ObjectId(id);
+      } catch (err) {
+        return null; // Filter out invalid IDs
+      }
+    }).filter(id => id !== null);
+
+    if (ids.length === 0) {
+      return res.status(400).send({ message: "Invalid book IDs" });
+    }
+
+    const result = await bookCollection.find({ _id: { $in: ids } }).toArray();
+    res.send(result || []);
+  } catch (err) {
+    console.error("Error fetching cart books:", err);
+    res.status(500).send([]);
+  }
+});
     // returning a books
     app.post("/return/:rentalId", async (req, res) => {
       const { rentalId } = req.params;
@@ -115,7 +219,8 @@ async function run() {
               price: book?.bookPrice,
               bookId: book?._id,
               isAvailable:true
-            }
+            },
+            returnDate: rental.returnDate
           };
         });
     

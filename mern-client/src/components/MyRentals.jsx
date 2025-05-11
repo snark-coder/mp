@@ -44,18 +44,23 @@ const MyRentals = () => {
     key={rental.rentalId}
     className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition p-4 flex flex-col"
   >
-    {/* Delete button (only for returned books) */}
     {rental.status === 'returned' && (
-      <button
-        onClick={() =>
-          setRentals(prev => prev.filter(r => r.rentalId !== rental.rentalId))
-        }
-        className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-lg font-bold"
-        title="Remove from view"
-      >
-        ✖
-      </button>
-    )}
+  <button
+    onClick={async () => {
+      try {
+        await axios.delete(`http://localhost:5000/rental/${rental.rentalId}`);
+        setRentals(prev => prev.filter(r => r.rentalId !== rental.rentalId));
+      } catch (error) {
+        console.error("Error deleting rental:", error);
+      }
+    }}
+    className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-lg font-bold"
+    title="Delete Rental"
+  >
+    delete
+  </button>
+)}
+
 
     <img
       src={rental.book.imageURL}

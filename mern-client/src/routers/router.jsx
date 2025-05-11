@@ -19,6 +19,9 @@ import Login from "../components/Login";
 import PrivateRouter from "../PrivateRoute/PrivateRouter";
 import Logout from "../components/Logout";
 import MyRentals from "../components/MyRentals";
+import Checkout from "../shop/Checkout";
+import CartPage from "../shop/CartPage";
+import Address from "../shop/Address";
 
 const router = createBrowserRouter([
     {
@@ -36,13 +39,31 @@ const router = createBrowserRouter([
                 
             },
             {
-                path:"/book/:id",
-                element: <SingleBook/>,
-                loader: ({params}) => fetch(`http://localhost:5000/book/${params.id}`)
-            },
+                path: "/book/:id",
+                element: <SingleBook />,  // SingleBook component
+                loader: async ({ params }) => {
+                  // Fetch the data for the specific book by id
+                  const response = await fetch(`http://localhost:5000/book/${params.id}`);
+                  const book = await response.json();
+                  return book;  // Return the book object to be used as a prop in SingleBook
+                }
+              },
             {
                 path: "/my-rentals",
                 element: <PrivateRouter><MyRentals /></PrivateRouter>
+            },
+            {
+                path: "/cart",
+                element: <PrivateRouter><CartPage/></PrivateRouter>  // Only accessible by authenticated users
+            },
+            // Add Checkout route
+            {
+                path: "/checkout",
+                element: <PrivateRouter><Checkout /></PrivateRouter>  // Only accessible by authenticated users
+            },
+            {
+                path: "/address",
+                element:<Address/>
             }
            
             

@@ -41,6 +41,7 @@ const NavBar = () => {
         {link: "Home", path:"/"},
         {link: "Shop", path:"/shop"},
         {link: "Rent your book", path:"/admin/dashboard/upload"},
+        {link: "cart", path:"/cart"}
         
     ]
   return (

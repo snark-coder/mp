@@ -49,7 +49,7 @@ const ManageBooks = () => {
                   <TableCell>{book.bookTitle}</TableCell>
                   <TableCell>{book.authorName}</TableCell>
                   <TableCell>{book.category}</TableCell>
-                  <TableCell>Rs. {book.bookPrice}</TableCell>
+                  <TableCell>Rs. {(book.price)}</TableCell>
                   <TableCell>
                     <Link to={`/admin/dashboard/edit-books/${book._id}`} className="font-medium text-cyan-600 hover:underline dark:text-cyan-500 mr-4">
                       Edit

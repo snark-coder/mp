@@ -1,56 +1,77 @@
-import { createContext, useState, useEffect, useContext } from 'react';
-import { AuthContext } from './AuthProvider';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { AuthContext } from './AuthProvider'; // Assuming you have AuthProvider
 
 export const CartContext = createContext();
+
+export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
   const { user } = useContext(AuthContext);
   const [cartItems, setCartItems] = useState([]);
 
-  // Fetch cart from backend on login
   useEffect(() => {
-    if (user?.uid) {
-      axios.get(`http://localhost:5000/cart/${user.uid}`)
-        .then(res => setCartItems(res.data.items || []))
-        .catch(err => console.error(err));
-    }
-  }, [user]);
-
-  // Update cart in backend
-  const updateCart = async (items) => {
-    setCartItems(items);
-    if (user?.uid) {
-      try {
-        await axios.post(`http://localhost:5000/cart/${user.uid}`, { items });
-      } catch (err) {
-        console.error("Failed to update cart:", err);
+    const fetchCart = async () => {
+      if (user) {
+        try {
+          // Step 1: Get the array of book IDs
+          const cartRes = await axios.get(`http://localhost:5000/api/cart/${user.uid}`);
+          const bookIds = cartRes.data;
+  
+          // Step 2: Fetch actual book data from those IDs
+          if (bookIds.length > 0) {
+            const booksRes = await axios.get(
+              `http://localhost:5000/cart-books?ids=${bookIds.join(',')}`
+            );
+            setCartItems(booksRes.data); // this should now be an array of book objects
+          } else {
+            setCartItems([]);
+          }
+        } catch (error) {
+          console.error('Failed to fetch cart', error);
+        }
       }
+    };
+  
+    fetchCart();
+  }, [user]);
+  
+
+  
+
+  const addToCart = async (book) => {
+    const userId = user?.uid;
+    if (!book || !book._id || !userId) {
+      console.error("Invalid book or user ID");
+      return;
+    }
+  
+    try {
+      const response = await axios.post(`http://localhost:5000/api/cart/add`, {
+        userId,
+        bookId: book._id,  // Ensure this is a valid 24-char string
+        title: book.bookTitle,
+        image: book.imageURL,
+        price: book.bookPrice
+      });
+      console.log(response.data);
+    } catch (err) {
+      console.error("Error adding to cart:", err);
     }
   };
+  
 
-  const addToCart = (book) => {
-    const exists = cartItems.find(item => item.bookId === book._id);
-    let updatedCart;
+  const removeFromCart = async (bookId) => {
+    if (!user) return;
 
-    if (exists) {
-      updatedCart = cartItems.map(item =>
-        item.bookId === book._id ? { ...item, quantity: item.quantity + 1 } : item
-      );
-    } else {
-      updatedCart = [...cartItems, {
-        bookId: book._id,
-        quantity: 1,
-        bookDetails: book,
-      }];
+    try {
+      await axios.delete(`http://localhost:5000/api/cart/remove/${user.uid}/${bookId}`);
+      // After removing, fetch updated cart
+      const res = await axios.get(`http://localhost:5000/api/cart/${user.uid}`);
+      setCartItems(res.data);
+    } catch (error) {
+      console.error('Failed to remove from cart', error);
     }
-
-    updateCart(updatedCart);
-  };
-
-  const removeFromCart = (bookId) => {
-    const updatedCart = cartItems.filter(item => item.bookId !== bookId);
-    updateCart(updatedCart);
   };
 
   return (
